@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { createServer } from 'node:http'
+import express from 'express'
 
 const PORT = 3333
 
@@ -10,29 +10,50 @@ const defaultHeaders = {
   'Access-Control-Allow-Origin': '*'
 }
 
-const handler = (req, res) => {
-  if (req.url === '/api/events') {
-    res.writeHead(200, defaultHeaders)
+let connectedClients = []
 
-    const messagesIntervalId = setInterval(() => {
-      const responseBody = `data: ${JSON.stringify({
-        message: `Message ID: ${randomUUID()}`
-      })}\n\n`
+const getMessagesHandler = (req, res) => {
+  res.writeHead(200, defaultHeaders)
 
-      res.write(responseBody)
-    }, 1000)
+  const clientId = randomUUID()
+  connectedClients.push({ id: clientId, response: res })
 
-    req.on('close', () => {
-      clearInterval(messagesIntervalId)
-      res.end()
-    })
+  req.on('close', () => {
+    connectedClients = connectedClients.filter(
+      (client) => client.id !== clientId
+    )
 
-    return
+    res.end()
+  })
+}
+
+const postMessageHandler = (req, res) => {
+  const message = req.body?.message
+
+  if (!message) {
+    throw new Error(
+      'Message parameter is required, please retry providing correct arguments'
+    )
   }
+
+  connectedClients.forEach((client) => {
+    const responseBody = `data: ${JSON.stringify({
+      message
+    })}\n\n`
+
+    client.response.write(responseBody)
+  })
 
   res.end()
 }
 
-const httpServer = createServer(handler)
+const app = express()
 
-httpServer.listen(PORT)
+app.use(express.json())
+
+app.get('/api/events', getMessagesHandler)
+app.post('/api/postEvent', postMessageHandler)
+
+app.listen(PORT, () => {
+  console.log(`server is running on port ${PORT}`)
+})
