@@ -1,0 +1,15 @@
+{
+  "name": "sse",
+  "version": "1.0.0",
+  "description": "Server Sent Events implementation",
+  "author": "Hugo Albrecht",
+  "license": "ISC",
+  "main": "server.js",
+  "type": "module",
+  "engines": {
+    "node": ">19.0.0"
+  },
+  "scripts": {
+    "dev:server": "node --watch server.js"
+  }
+}
